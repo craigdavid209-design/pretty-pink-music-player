@@ -26,3 +26,7 @@ jobs:
         run: python tests/test_temporal_scene_motion.py
       - name: Run SUL round-2 truth-boundary test
         run: python tests/test_scene_understanding_v2.py
+      - name: Run selective Scene Restraint v3 test
+        run: python tests/test_selective_scene_restraint_v3.py
+      - name: Run vocal and production witness test
+        run: python tests/test_vocal_production_witness.py
