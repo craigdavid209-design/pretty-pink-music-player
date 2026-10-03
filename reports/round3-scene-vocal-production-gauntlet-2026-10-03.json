@@ -1,0 +1,64 @@
+{
+  "scope": {
+    "tracks": 95,
+    "vocal_windows_per_track": 30,
+    "vocal_windows_total": 2850,
+    "owned_audio_committed": false
+  },
+  "scene_2_0_110": {
+    "whole_track_active_tracks": 94,
+    "selective_tracks": 1,
+    "median_mean_factor": 0.815583,
+    "profiles": {
+      "SUSTAINED_AND_PUNCTUATED_MOTION": 55,
+      "SPARSE_ABRUPT_CHANGES": 1,
+      "PUNCTUATED_MOTION": 39
+    }
+  },
+  "vocal_proxy": {
+    "median_track_p90": 0.4106354313637986,
+    "selected": {
+      "Jane Remover - Revengeseekerz - 03 Star people.flac": {
+        "median": 0.4139943146760677,
+        "p90": 0.4464963149818599,
+        "peak": 0.5121348697623089,
+        "riskyFrac": 0.43333333333333335,
+        "veryRiskyFrac": 0.03333333333333333
+      },
+      "Jane Remover - Revengeseekerz - 04 Experimental Skin.flac": {
+        "median": 0.5173713445725083,
+        "p90": 0.569908853392529,
+        "peak": 0.6105301667880443,
+        "riskyFrac": 0.9666666666666667,
+        "veryRiskyFrac": 0.6
+      },
+      "Ice Cube - 04. Wicked.flac": {
+        "median": 0.2974181255037728,
+        "p90": 0.33076937489217967,
+        "peak": 0.34252805604209735,
+        "riskyFrac": 0.0,
+        "veryRiskyFrac": 0.0
+      },
+      "Charli xcx - 12. Official.flac": {
+        "median": 0.232540068336323,
+        "p90": 0.2859474995703943,
+        "peak": 0.30593346909251673,
+        "riskyFrac": 0.0,
+        "veryRiskyFrac": 0.0
+      },
+      "Charli xcx - 04. 1999.flac": {
+        "median": 0.3674155598381892,
+        "p90": 0.41284811188563897,
+        "peak": 0.46541751726125546,
+        "riskyFrac": 0.1,
+        "veryRiskyFrac": 0.0
+      }
+    },
+    "claim": "mixture-only intelligibility-risk proxy; not lyrics recognition or human word-correct ground truth"
+  },
+  "decision": {
+    "scene": "replace global profile authority with local multi-cue salient-event authority",
+    "vocal": "add read-only intelligibility-risk witness; only authority is vetoing scene restraint, never creating correction",
+    "production": "add context/ambiguity witness; production complexity explains evidence but never proves defect"
+  }
+}
