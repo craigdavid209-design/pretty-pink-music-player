@@ -11,6 +11,7 @@ from pathlib import Path
 import numpy as np
 import librosa
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.metrics import balanced_accuracy_score, f1_score, precision_score, recall_score, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 
@@ -150,15 +151,76 @@ def main():
     for s,(xs,ys) in sets.items():
         if not xs: raise SystemExit(f'No usable {s} data; pairs={len(pairs)} splitSource={split_source}')
         data[s]=(np.vstack(xs),np.concatenate(ys))
-    Xtr,ytr=data['train'];Xv,yv=data['valid'];Xt,yt=data['test'];best=None
-    for C in (.03,.1,.3,1,3,10):
-        sc=StandardScaler().fit(Xtr);m=LogisticRegression(C=C,max_iter=2000,class_weight='balanced').fit(sc.transform(Xtr),ytr);sv=m.predict_proba(sc.transform(Xv))[:,1]
-        for th in np.arange(.30,.711,.02):
-            pv=(sv>=th).astype(int);mm=metrics(yv,pv,sv);key=(mm['balancedAccuracy'],mm['f1'],-mm['falsePositiveRate'])
-            if best is None or key>best[0]:best=(key,C,float(th),mm)
-    _,C,th,valm=best;Xtv=np.vstack([Xtr,Xv]);ytv=np.concatenate([ytr,yv]);sc=StandardScaler().fit(Xtv);m=LogisticRegression(C=C,max_iter=2000,class_weight='balanced').fit(sc.transform(Xtv),ytv);st=m.predict_proba(sc.transform(Xt))[:,1];pt=(st>=th).astype(int);testm=metrics(yt,pt,st)
-    report={'dataset':'Jamendo Corpus for Singing Voice Detection','splitSource':split_source,'songs':{k:len(v) for k,v in songs.items()},'windows':{k:int(len(data[k][1])) for k in data},'voiceFraction':{k:float(np.mean(data[k][1])) for k in data},'featureNames':FEATURES,'selectedC':C,'threshold':th,'validation':valm,'test':testm,'student':{'mean':sc.mean_.tolist(),'scale':sc.scale_.tolist(),'coefficient':m.coef_[0].tolist(),'intercept':float(m.intercept_[0])},'phoneContract':'Research-only shadow student. All features are mixture evidence; no singer identity, lyric, defect, or playback authority.','graduationCriteria':{'balancedAccuracyAtLeast':.75,'f1AtLeast':.75,'falsePositiveRateAtMost':.25}}
+    Xtr,ytr=data['train'];Xv,yv=data['valid'];Xt,yt=data['test']
+
+    def choose_threshold(score):
+        best=None
+        # False positives are the specific failure that motivated this lesson,
+        # so break near-ties in favor of lower FPR rather than higher recall.
+        for th in np.arange(.30,.811,.02):
+            pv=(score>=th).astype(int); mm=metrics(yv,pv,score)
+            key=(mm['balancedAccuracy'], mm['f1'], -mm['falsePositiveRate'])
+            if best is None or key>best[0]: best=(key,float(th),mm)
+        return best
+
+    candidates=[]
+    for C in (.1,1,3):
+        sc=StandardScaler().fit(Xtr)
+        model=LogisticRegression(C=C,max_iter=2000,class_weight='balanced').fit(sc.transform(Xtr),ytr)
+        score=model.predict_proba(sc.transform(Xv))[:,1]
+        key,th,mm=choose_threshold(score)
+        candidates.append((key,'logistic',{'C':C},th,mm,model,sc))
+
+    # Tiny shallow ensembles remain phone-feasible: inference is only a few
+    # hundred scalar comparisons per 500 ms observation, with no neural runtime.
+    for family in ('extraTrees','randomForest'):
+        for trees,depth,leaf in ((24,4,24),(32,5,20),(48,6,16),(48,7,24)):
+            cls=ExtraTreesClassifier if family=='extraTrees' else RandomForestClassifier
+            model=cls(n_estimators=trees,max_depth=depth,min_samples_leaf=leaf,
+                      max_features=None,class_weight='balanced',random_state=209,
+                      n_jobs=-1).fit(Xtr,ytr)
+            score=model.predict_proba(Xv)[:,1]
+            key,th,mm=choose_threshold(score)
+            # Prefer the smaller model when validation performance is essentially tied.
+            complexity=trees*depth
+            selection=(key[0],key[1],key[2],-complexity)
+            candidates.append((selection,family,{'trees':trees,'depth':depth,'minLeaf':leaf},th,mm,model,None))
+
+    chosen=max(candidates,key=lambda x:x[0])
+    _,family,params,th,valm,model,sc=chosen
+    test_score=model.predict_proba(sc.transform(Xt) if sc is not None else Xt)[:,1]
+    test_pred=(test_score>=th).astype(int); testm=metrics(yt,test_pred,test_score)
+
+    if family=='logistic':
+        student={'type':'logistic','mean':sc.mean_.tolist(),'scale':sc.scale_.tolist(),
+                 'coefficient':model.coef_[0].tolist(),'intercept':float(model.intercept_[0])}
+    else:
+        forest=[]
+        for est in model.estimators_:
+            t=est.tree_
+            # Probability at a leaf is class-1 weighted count / total weighted count.
+            values=t.value[:,0,:]
+            leaf_prob=(values[:,1]/np.maximum(1e-12,values.sum(axis=1))).tolist()
+            forest.append({'left':t.children_left.astype(int).tolist(),
+                           'right':t.children_right.astype(int).tolist(),
+                           'feature':t.feature.astype(int).tolist(),
+                           'threshold':t.threshold.astype(float).tolist(),
+                           'leafProbability':leaf_prob})
+        student={'type':family,'trees':forest}
+
+    report={
+      'dataset':'Jamendo Corpus for Singing Voice Detection','splitSource':split_source,
+      'songs':{k:len(v) for k,v in songs.items()},
+      'windows':{k:int(len(data[k][1])) for k in data},
+      'voiceFraction':{k:float(np.mean(data[k][1])) for k in data},
+      'featureNames':FEATURES,'selectedModel':family,'selectedParameters':params,
+      'threshold':th,'validation':valm,'test':testm,'student':student,
+      'phoneContract':'Research-only shadow student. All features are mixture evidence; no singer identity, lyric, defect, or playback authority.',
+      'graduationCriteria':{'balancedAccuracyAtLeast':.75,'f1AtLeast':.75,'falsePositiveRateAtMost':.25},
+    }
     report['graduatesPublicTruth']=bool(testm['balancedAccuracy']>=.75 and testm['f1']>=.75 and testm['falsePositiveRate']<=.25)
-    Path(args.output).parent.mkdir(parents=True,exist_ok=True);Path(args.output).write_text(json.dumps(report,indent=2),encoding='utf-8');print(json.dumps({k:v for k,v in report.items() if k!='student'},indent=2))
-    if not report['graduatesPublicTruth']:raise SystemExit('Student did not graduate public voice/no-voice truth; keep research-only and inspect artifact.')
-if __name__=='__main__':main()
+    Path(args.output).parent.mkdir(parents=True,exist_ok=True);Path(args.output).write_text(json.dumps(report,indent=2),encoding='utf-8')
+    print(json.dumps({k:v for k,v in report.items() if k!='student'},indent=2))
+    if not report['graduatesPublicTruth']:
+        raise SystemExit('Student did not graduate public voice/no-voice truth; keep research-only and inspect report.')
+if __name__=='__main__': main()
