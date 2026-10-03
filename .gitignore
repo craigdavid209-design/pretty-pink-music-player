@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Never commit owned/copyrighted test audio or derived stems.
+audio/
+stems/
+*.flac
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+
+# Heavy research model files remain external to the repo.
+models/
+*.pt
+*.pth
+*.th
+*.onnx
