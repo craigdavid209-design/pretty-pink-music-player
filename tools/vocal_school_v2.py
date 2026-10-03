@@ -1,7 +1,9 @@
 """Pretty Pink Vocal School v2 research witness.
 
 Pure read-only reasoning over normalized evidence. No PCM/gain/EQ authority.
-Every claim is a mixture hypothesis and can abstain.
+Every claim is a mixture hypothesis and can abstain. This witness does NOT
+predict human lyric intelligibility; that remains UNKNOWN without a validated
+semantic/listener-aware model.
 """
 from __future__ import annotations
 from dataclasses import dataclass
@@ -20,9 +22,9 @@ def _ok01(x: float) -> bool:
 
 class VocalLabel(str, Enum):
     UNAVAILABLE = "UNAVAILABLE"
-    LIKELY_VOCAL_LOW_RISK = "LIKELY_VOCAL_LOW_RISK"
-    LIKELY_VOCAL_ELEVATED_RISK = "LIKELY_VOCAL_ELEVATED_RISK"
-    LIKELY_VOCAL_HIGH_COMBINED_RISK = "LIKELY_VOCAL_HIGH_COMBINED_RISK"
+    LIKELY_VOCAL_LOW_PRODUCTION_BURDEN = "LIKELY_VOCAL_LOW_PRODUCTION_BURDEN"
+    LIKELY_VOCAL_ELEVATED_PRODUCTION_BURDEN = "LIKELY_VOCAL_ELEVATED_PRODUCTION_BURDEN"
+    LIKELY_VOCAL_HIGH_COMBINED_PRODUCTION_BURDEN = "LIKELY_VOCAL_HIGH_COMBINED_PRODUCTION_BURDEN"
 
 
 @dataclass(frozen=True)
@@ -30,11 +32,11 @@ class VocalResult:
     label: VocalLabel
     presence: float
     confidence: float
-    articulation_clarity: float
+    articulation_evidence: float
     masking_burden: float
     production_smear: float
     layering: float
-    risk: float
+    production_burden: float
     ambiguity: float
     support_routes: int
 
@@ -45,6 +47,10 @@ class VocalResult:
     @property
     def authority(self) -> float:
         return 0.0
+
+    @property
+    def lyric_intelligibility(self) -> str:
+        return "UNKNOWN"
 
 
 _REQUIRED = (
@@ -78,12 +84,12 @@ def evaluate(e: Mapping[str, float]) -> VocalResult:
     confidence = active * _u(.28 * ordered[1] + .24 * ordered[2] + .20 * persistence
                              + .16 * min(1.0, support_routes / 3.0) + .12 * max(center, .30))
 
-    articulation_clarity = _u(.46 * art_band + .28 * flux + .20 * mod + .06 * air)
+    articulation_evidence = _u(.46 * art_band + .28 * flux + .20 * mod + .06 * air)
     layering = _u(.50 * side + .22 * (1.0 - center) + .18 * density + .10 * (1.0 - tonal))
     production_smear = _u(.38 * (1.0 - flux) + .27 * (1.0 - mod) + .21 * density + .14 * layering)
     masking_burden = _u(.42 * density + .24 * side + .18 * (1.0 - center) + .16 * art_band)
-    risk = presence * _u(.31 * masking_burden + .25 * production_smear
-                         + .17 * layering + .27 * (1.0 - articulation_clarity))
+    production_burden = presence * _u(.31 * masking_burden + .25 * production_smear
+                                      + .17 * layering + .27 * (1.0 - articulation_evidence))
     complexity = _u(.36 * density + .26 * layering + .22 * production_smear + .16 * masking_burden)
     ambiguity = _u((1.0 - confidence) * .58 + complexity * .27 + (1.0 - presence) * .15)
 
@@ -91,20 +97,20 @@ def evaluate(e: Mapping[str, float]) -> VocalResult:
     dynamic_support = max(temporal_route, articulation_route) >= .40
     if active < .28 or support_routes < 2 or not spectral_support or not dynamic_support \
             or presence < .38 or confidence < .43:
-        return VocalResult(VocalLabel.UNAVAILABLE, presence, confidence, articulation_clarity,
-                           masking_burden, production_smear, layering, risk, ambiguity,
-                           support_routes)
+        return VocalResult(VocalLabel.UNAVAILABLE, presence, confidence, articulation_evidence,
+                           masking_burden, production_smear, layering, production_burden,
+                           ambiguity, support_routes)
 
     high_axes = sum((masking_burden >= .58, production_smear >= .62,
-                     layering >= .55, articulation_clarity <= .38))
-    if risk >= .40 and high_axes >= 2 and confidence >= .58:
-        label = VocalLabel.LIKELY_VOCAL_HIGH_COMBINED_RISK
-    elif risk >= .27:
-        label = VocalLabel.LIKELY_VOCAL_ELEVATED_RISK
+                     layering >= .55, articulation_evidence <= .38))
+    if production_burden >= .40 and high_axes >= 2 and confidence >= .58:
+        label = VocalLabel.LIKELY_VOCAL_HIGH_COMBINED_PRODUCTION_BURDEN
+    elif production_burden >= .27:
+        label = VocalLabel.LIKELY_VOCAL_ELEVATED_PRODUCTION_BURDEN
     else:
-        label = VocalLabel.LIKELY_VOCAL_LOW_RISK
-    return VocalResult(label, presence, confidence, articulation_clarity,
-                       masking_burden, production_smear, layering, risk,
+        label = VocalLabel.LIKELY_VOCAL_LOW_PRODUCTION_BURDEN
+    return VocalResult(label, presence, confidence, articulation_evidence,
+                       masking_burden, production_smear, layering, production_burden,
                        ambiguity, support_routes)
 
 
