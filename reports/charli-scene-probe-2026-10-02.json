@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-02",
+  "probe": "read-only mixture descriptors at 11025 Hz; no stem or identity claims",
+  "tracks": [
+    {"file":"1999","stereoCorrelation":0.7586280849,"sideToMidEnergy":0.1372852185,"harmonicEnergyRatio":0.4113440140,"percussiveEnergyRatio":0.1204309543,"effectiveTextureComponents":7.8755973601,"bestAcousticRegimeClusters":2,"silhouette":0.2627177238,"onsetRatePerMinute":147.4630021},
+    {"file":"2099 (feat. Troye Sivan)","stereoCorrelation":0.6903602434,"sideToMidEnergy":0.1836399130,"harmonicEnergyRatio":0.4990101352,"percussiveEnergyRatio":0.1206959378,"effectiveTextureComponents":7.6374696809,"bestAcousticRegimeClusters":2,"silhouette":0.2238953114,"onsetRatePerMinute":105.8410760},
+    {"file":"Next Level Charli","stereoCorrelation":0.6834607397,"sideToMidEnergy":0.1881061414,"harmonicEnergyRatio":0.5847691277,"percussiveEnergyRatio":0.0648170765,"effectiveTextureComponents":7.8820300642,"bestAcousticRegimeClusters":2,"silhouette":0.2745941281,"onsetRatePerMinute":171.6714600},
+    {"file":"White Mercedes","stereoCorrelation":0.7694863712,"sideToMidEnergy":0.1302730326,"harmonicEnergyRatio":0.5977366276,"percussiveEnergyRatio":0.0704411676,"effectiveTextureComponents":7.8088807957,"bestAcousticRegimeClusters":2,"silhouette":0.2403403074,"onsetRatePerMinute":233.0489006},
+    {"file":"Official","stereoCorrelation":0.7441814824,"sideToMidEnergy":0.1467350197,"harmonicEnergyRatio":0.6624566948,"percussiveEnergyRatio":0.0674901364,"effectiveTextureComponents":7.7638235138,"bestAcousticRegimeClusters":2,"silhouette":0.2032665461,"onsetRatePerMinute":215.9714203}
+  ],
+  "interpretation": "1999 and 2099 exhibit measurable spatial/texture differences, but solo controls also contain multiple acoustic regimes. Mixture-only clustering therefore cannot truthfully identify Charli vs Troye. Treat these values as scene-complexity evidence only."
+}
