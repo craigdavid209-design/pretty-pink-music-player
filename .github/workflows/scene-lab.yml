@@ -22,3 +22,7 @@ jobs:
         run: python tests/test_scene_probe.py
       - name: Run Scene Understanding truth-boundary test
         run: python tests/test_scene_understanding.py
+      - name: Run temporal scene-motion truth test
+        run: python tests/test_temporal_scene_motion.py
+      - name: Run SUL round-2 truth-boundary test
+        run: python tests/test_scene_understanding_v2.py
