@@ -1,0 +1,22 @@
+name: Comfort Priority Interlock v1
+
+on:
+  push:
+    paths:
+      - 'tools/comfort_priority_interlock_v1.py'
+      - 'tests/test_comfort_priority_interlock_v1.py'
+      - 'reports/comfort-priority-interlock-v1-real-music-2026-10-03.json'
+      - 'docs/COMFORT-PRIORITY-INTERLOCK-V1-DECISION-2026-10-03.md'
+      - '.github/workflows/comfort-priority-interlock-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  monotonic-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run CPI v1 policy tests
+        run: python tests/test_comfort_priority_interlock_v1.py
