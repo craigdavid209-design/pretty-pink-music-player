@@ -4,7 +4,7 @@ Downloaded data is ephemeral CI input and is never committed. The report contain
 only derived metrics/metadata. This is a research calibration, not a production gate.
 """
 from __future__ import annotations
-import argparse,csv,json,os,sys
+import argparse,csv,json,sys
 from pathlib import Path
 import numpy as np
 import librosa
@@ -63,42 +63,71 @@ def analyze(path: Path, sr=11025, win_s=.5):
             'meanPresence':float(np.mean([r.presence for r in results])),
             'meanConfidence':float(np.mean([r.confidence for r in results]))}
 
+def _rows_from_json(obj):
+    if isinstance(obj,list):
+        for x in obj:
+            yield from _rows_from_json(x)
+    elif isinstance(obj,dict):
+        if 'signal' in obj and ('correctness' in obj or ('words_correct' in obj and 'n_words' in obj)):
+            yield obj
+        for v in obj.values():
+            if isinstance(v,(list,dict)):
+                yield from _rows_from_json(v)
+
 def metadata_scores(root: Path):
-    rows=[]
+    candidates=[]
+    # Current CLIP metadata is JSON: signal is the audio identifier and correctness
+    # is the listener word-correct ratio. Keep CSV fallback for forward compatibility.
+    for p in root.rglob('*.json'):
+        try:
+            obj=json.loads(p.read_text(encoding='utf-8-sig'))
+            for row in _rows_from_json(obj):
+                ident=str(row.get('signal','')).strip()
+                score=row.get('correctness')
+                if score is None and row.get('n_words'):
+                    score=float(row.get('words_correct',0))/float(row['n_words'])
+                if ident and score is not None:
+                    candidates.append((ident,float(score)))
+        except Exception:
+            pass
     for p in root.rglob('*.csv'):
         try:
             with p.open(newline='',encoding='utf-8-sig') as f:
-                for row in csv.DictReader(f): rows.append((p,row))
-        except Exception: pass
-    candidates=[]
-    for p,row in rows:
-        keys={k.lower():k for k in row}
-        score_key=next((orig for low,orig in keys.items() if any(t in low for t in ('intellig','word_correct','wcr'))),None)
-        id_key=next((orig for low,orig in keys.items() if any(t in low for t in ('signal','file','audio','sample','scene','id'))),None)
-        if score_key and id_key:
-            try: candidates.append((str(row[id_key]),float(row[score_key])))
-            except Exception: pass
-    return candidates
+                for row in csv.DictReader(f):
+                    keys={k.lower():k for k in row}
+                    score_key=next((orig for low,orig in keys.items() if any(t in low for t in ('correctness','intellig','word_correct','wcr'))),None)
+                    id_key=next((orig for low,orig in keys.items() if any(t in low for t in ('signal','file','audio','sample','scene','id'))),None)
+                    if score_key and id_key:
+                        try: candidates.append((str(row[id_key]),float(row[score_key])))
+                        except Exception: pass
+        except Exception:
+            pass
+    # One signal can appear in listener-level rows; aggregate listener correctness.
+    by={}
+    for ident,score in candidates:
+        by.setdefault(ident,[]).append(score)
+    return [(ident,float(np.mean(vals))) for ident,vals in by.items()]
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('root');ap.add_argument('output');args=ap.parse_args()
     root=Path(args.root); audio=[p for p in root.rglob('*') if p.suffix.lower() in AUDIO_EXT]
-    scores=metadata_scores(root); items=[]
+    scores=metadata_scores(root); score_map={str(k).lower():v for k,v in scores};items=[]
     for p in sorted(audio):
-        m=analyze(p); stem=p.stem.lower(); score=None
-        for ident,s in scores:
-            ident_l=str(ident).lower()
-            if stem in ident_l or ident_l in stem or p.name.lower() in ident_l:
-                score=s; break
+        m=analyze(p); stem=p.stem.lower(); ident=stem[:-7] if stem.endswith('_unproc') else stem
+        score=score_map.get(ident)
         m.update(file=str(p.relative_to(root)),listenerScore=score);items.append(m)
-    matched=[x for x in items if x['listenerScore'] is not None and x['riskP90'] is not None]
+    # Evaluate processed signals only against listener scores; unprocessed files are useful
+    # acoustic controls but do not represent the exact listener stimulus when processing differs.
+    matched=[x for x in items if '/signals/' in ('/'+x['file'].replace('\\','/')) and x['listenerScore'] is not None and x['riskP90'] is not None]
     rho=None
     if len(matched)>=3:
         rho=float(spearmanr([x['riskP90'] for x in matched],[1-x['listenerScore'] for x in matched]).statistic)
-    report={'audioFiles':len(audio),'metadataScoreCandidates':len(scores),'matchedScores':len(matched),
-            'riskVsListenerDifficultySpearman':rho,'note':'Five-sample demo is descriptive only; no promotion gate.',
+    report={'audioFiles':len(audio),'metadataScoreCandidates':len(scores),'matchedProcessedScores':len(matched),
+            'riskVsListenerDifficultySpearman':rho,
+            'note':'Tiny public demo correlation is descriptive only; it is not a promotion gate.',
             'items':items}
     Path(args.output).parent.mkdir(parents=True,exist_ok=True);Path(args.output).write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps({k:report[k] for k in report if k!='items'},indent=2))
     if not audio: raise SystemExit('No CLIP demo audio found')
+    if len(matched)==0: raise SystemExit('No listener correctness scores matched processed CLIP demo signals')
 if __name__=='__main__': main()
