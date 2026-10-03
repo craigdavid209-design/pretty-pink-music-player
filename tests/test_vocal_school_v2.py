@@ -10,7 +10,8 @@ def base(**kw):
     e.update(kw); return e
 
 r=evaluate(base())
-assert r.available and r.label is VocalLabel.LIKELY_VOCAL_LOW_RISK and r.authority == 0
+assert r.available and r.label is VocalLabel.LIKELY_VOCAL_LOW_PRODUCTION_BURDEN
+assert r.authority == 0 and r.lyric_intelligibility == 'UNKNOWN'
 
 r=evaluate(base(air=.02,articulation_band=.50,vowel=.80,body=.78,modulation=.72))
 assert r.available
@@ -20,7 +21,8 @@ assert r.available
 
 r=evaluate(base(articulation_band=.28,modulation=.36,flux=.20,center=.38,
                 broadband_density=.92,side_activity=.72,persistence=.86,vowel=.80,body=.72))
-assert r.available and r.risk >= .27 and r.authority == 0
+assert r.available and r.production_burden >= .27 and r.authority == 0
+assert r.lyric_intelligibility == 'UNKNOWN'
 
 r=evaluate(base(body=.05,vowel=.05,articulation_band=.95,tonal=.05,modulation=.05,
                 flux=.05,persistence=.20,center=.90,broadband_density=.20,side_activity=.05))
