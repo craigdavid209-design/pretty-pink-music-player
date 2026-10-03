@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "fixture": "12 s exact synthetic truth: centered harmonic source vs layered asymmetric harmonic + percussion source",
+  "assertions": {
+    "singleSideToMidNearZero": true,
+    "layeredSideToMidGreaterThan002": true,
+    "layeredPercussiveEvidenceGreaterThanSingleBy001": true,
+    "nmfReconstructionFinitePositive": true,
+    "noSpeakerOrInstrumentIdentityClaim": true,
+    "noStemGroundTruthClaim": true
+  },
+  "observed": {
+    "single": {"stereoCorrelation":1.0,"sideToMidEnergy":0.0,"harmonicEnergyRatio":0.9992032356,"percussiveEnergyRatio":0.0002793430,"onsetRatePerMinute":5.0},
+    "layered": {"stereoCorrelation":0.4902022564,"sideToMidEnergy":0.3441212949,"harmonicEnergyRatio":0.8955493316,"percussiveEnergyRatio":0.0670410534,"onsetRatePerMinute":405.0}
+  },
+  "note": "This validates basic sensitivity and truthful labeling, not semantic source separation. GitHub CI reruns the synthetic fixture without copyrighted audio."
+}
