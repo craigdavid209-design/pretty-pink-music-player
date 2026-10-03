@@ -1,0 +1,39 @@
+name: Vocal School CLIP Demo
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/vocal_school_v2.py'
+      - 'tools/clip_demo_exam.py'
+      - '.github/workflows/vocal-school-clip-demo.yml'
+
+jobs:
+  public-truth-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Download Cadenza CLIP demo and metadata
+        run: |
+          mkdir -p /tmp/clip-school/data
+          curl -L --fail --retry 3 -o /tmp/clip-school/demo.tar.gz 'https://zenodo.org/records/17950664/files/cadenza_clip1_data.demo.v1.0.tar.gz?download=1'
+          curl -L --fail --retry 3 -o /tmp/clip-school/meta.tar.gz 'https://zenodo.org/records/17950664/files/cadenza_clip1_data.metadata.v1.3.tar.gz?download=1'
+          tar -xzf /tmp/clip-school/demo.tar.gz -C /tmp/clip-school/data
+          tar -xzf /tmp/clip-school/meta.tar.gz -C /tmp/clip-school/data
+      - name: Run public CLIP demo exam
+        run: python tools/clip_demo_exam.py /tmp/clip-school/data reports/clip-demo-vocal-school-v2.json
+      - name: Upload derived report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: clip-demo-vocal-school-v2
+          path: reports/clip-demo-vocal-school-v2.json
+          if-no-files-found: error
