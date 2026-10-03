@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Pretty Pink Comfort Priority Interlock v1 — research contract.
+"""Pretty Pink Comfort Priority Interlock v1.1 — research contract.
 
 This module does not process audio. It encodes one narrow authority rule discovered
-while auditing 2.0.112 after louder-speaker listening:
+while auditing 2.0.112 after louder-speaker listening and comparing current source
+against the human-ear-approved 2.0.68 TELG baseline:
 
 - Scene v3 may normally move an existing negative Balance cut toward zero.
-- If the *existing* SpectralMarginPolicy has already earned non-zero confidence
-  from persistent energetic presence + upper-air evidence, Scene must not relax
-  that Balance cut.
+- If an *existing* comfort system has already earned protection — either
+  SpectralMarginPolicy positive confidence or TELG additional delivered-level
+  reserve above the spectral floor — Scene must not relax that Balance cut.
 - QDI keeps the existing Scene factor unchanged.
 
 This creates no new attenuation authority: the strongest possible Balance request
@@ -24,23 +25,27 @@ def clamp_scene_factor(value: float) -> float:
     return max(0.82, min(1.0, float(value)))
 
 
-def balance_scene_factor(scene_factor: float, spectral_available: bool,
-                         spectral_confidence: float) -> float:
-    """Return the factor Scene is allowed to apply to a negative Balance cut.
+def comfort_earned(spectral_available: bool, spectral_confidence: float,
+                   telg_extra_reserve: bool) -> bool:
+    """Existing comfort evidence only; malformed evidence never invents authority."""
+    spectral = False
+    if spectral_available and isinstance(spectral_confidence, (int, float)):
+        confidence = float(spectral_confidence)
+        spectral = confidence == confidence and 0.0 < confidence <= 1.0
+    return spectral or bool(telg_extra_reserve)
 
-    Existing SpectralMarginPolicy only emits positive confidence after its own
-    strict persistence / energetic / upper-air gates pass. In that case comfort
-    gets priority and Scene loses its *reduction* authority for Balance only.
+
+def balance_scene_factor(scene_factor: float, spectral_available: bool,
+                         spectral_confidence: float,
+                         telg_extra_reserve: bool = False) -> float:
+    """Return the factor Scene may apply to an already-negative Balance cut.
+
+    Comfort can veto Scene's *reduction* authority only. It cannot create a cut,
+    deepen a cut, alter TELG/Spectral thresholds, or affect QDI.
     """
     scene = clamp_scene_factor(scene_factor)
-    if not spectral_available:
-        return scene
-    if not isinstance(spectral_confidence, (int, float)):
-        return scene
-    confidence = float(spectral_confidence)
-    if confidence != confidence or confidence < 0.0 or confidence > 1.0:
-        return scene
-    return 1.0 if confidence > 0.0 else scene
+    return 1.0 if comfort_earned(spectral_available, spectral_confidence,
+                                 telg_extra_reserve) else scene
 
 
 def qdi_scene_factor(scene_factor: float) -> float:
@@ -59,4 +64,4 @@ def apply_balance_cut(original_cut_db: float, factor: float) -> float:
 
 
 if __name__ == "__main__":
-    print("Comfort Priority Interlock v1: research-only policy contract")
+    print("Comfort Priority Interlock v1.1: research-only policy contract")
