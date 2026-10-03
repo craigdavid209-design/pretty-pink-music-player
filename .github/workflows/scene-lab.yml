@@ -30,3 +30,5 @@ jobs:
         run: python tests/test_selective_scene_restraint_v3.py
       - name: Run vocal and production witness test
         run: python tests/test_vocal_production_witness.py
+      - name: Run Vocal School v2 truth-boundary test
+        run: python tests/test_vocal_school_v2.py
