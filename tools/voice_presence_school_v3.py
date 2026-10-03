@@ -102,14 +102,14 @@ def harmonic_score(power,freqs,candidates):
         if s>best: best=s;best_f=f0
     return u((best/total)*2.2),best_f
 
-def song_features(path:Path, seg, sr=11025, win_s=.5):
+def song_features(path:Path, seg, sr=11025, win_s=.5, hop_s=2.0):
     y,_=librosa.load(path,sr=sr,mono=False)
     if y.ndim==1: y=np.stack([y,y])
     elif y.shape[0]>2: y=y[:2]
-    n=int(round(sr*win_s));sub=int(round(sr*.1));nfft=2048
-    freqs=np.fft.rfftfreq(nfft,1/sr);candidates=harmonic_candidates(sr,nfft)
+    n=int(round(sr*win_s)); hop=int(round(sr*hop_s)); sub=int(round(sr*.1)); nfft=2048
+    freqs=np.fft.rfftfreq(nfft,1/sr); candidates=harmonic_candidates(sr,nfft)
     X=[];Y=[];prev_spec=None;prev_f0=None;persist=0.0
-    for st in range(0,y.shape[1]-n+1,n):
+    for st in range(0,y.shape[1]-n+1,hop):
         center_t=(st+n/2)/sr;lab=label_at(seg,center_t)
         if lab is None: continue
         chunk=y[:,st:st+n];mono=chunk.mean(0);mid=(chunk[0]+chunk[1])*.5;side=(chunk[0]-chunk[1])*.5
@@ -121,8 +121,7 @@ def song_features(path:Path, seg, sr=11025, win_s=.5):
                 m=(freqs>=lo)&(freqs<hi);return float(spec[m].sum()/total) if m.any() else 0.0
             b,v,a,h=frac(120,500),frac(500,2000),frac(2000,5000),frac(5000,min(9000,sr/2+1));band_rows.append((u(b/.35),u(v/.50),u(a/.28),u(h/.15)))
             m=(freqs>=120)&(freqs<=min(9000,sr/2));p=spec[m]
-            triple=float(np.max(p[:-2]+p[1:-1]+p[2:])) if len(p)>=3 else float(p.sum())
-            tonal_rows.append(u(triple/(float(p.sum())+1e-16)))
+            triple=float(np.max(p[:-2]+p[1:-1]+p[2:])) if len(p)>=3 else float(p.sum());tonal_rows.append(u(triple/(float(p.sum())+1e-16)))
             ns=spec/(np.sqrt(np.sum(spec**2))+1e-16);flux_rows.append(0.0 if prev_spec is None else u(np.sqrt(np.sum((ns-prev_spec)**2))/.8));prev_spec=ns
             hs,f0=harmonic_score(spec,freqs,candidates);harm_rows.append(hs);f0_rows.append(f0)
             hi=(freqs>=2000)&(freqs<=min(8500,sr/2));q=np.sqrt(spec[hi]);flat=float(np.exp(np.mean(np.log(q+1e-12)))/(np.mean(q)+1e-12)) if q.size else 0;flat_rows.append(u(flat/.7));env.append(float(np.sqrt(np.mean(z*z)+1e-12)))
