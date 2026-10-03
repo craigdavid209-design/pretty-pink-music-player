@@ -1,0 +1,18 @@
+{
+  "currentVersion": "2.0.108",
+  "protectedCoreBaseline": "2.0.92",
+  "protectedJavaClassesCompared": 76,
+  "byteIdentical": true,
+  "mismatches": [],
+  "excludedPresentationIntegrationFiles": [
+    "AlbumShelfView.java",
+    "BrowseReturnContext.java",
+    "MainActivity.java",
+    "MatteBlackActivity.java",
+    "MatteBrandMark.java",
+    "MockupBackdrop.java",
+    "PlayerService.java",
+    "ReleaseCopy.java"
+  ],
+  "note": "PlayerService changes were separately inspected and are idle-media/metadata/presentation changes; no gain-policy math was changed."
+}
