@@ -1,0 +1,22 @@
+{
+  "sourceAudit": "Pretty Pink 2.0.92 full-stack corpus evidence inherited unchanged by 2.0.108 protected brain",
+  "rows": 306,
+  "distinctFilenames": 151,
+  "modesLufs": [-19.0,-14.0],
+  "features": {
+    "presence": {"activeRows":110,"abstainedRows":196,"maxObservedDb":0.663,"medianMaxDb":0.0,"medianMeanDb":0.0},
+    "qdi": {"activeRows":191,"abstainedRows":115,"maxObservedDb":0.3310518596,"medianMaxDb":0.1036526151,"medianMeanDb":0.0013779653},
+    "balance": {"activeRows":264,"abstainedRows":42,"maxObservedDb":0.5187879232,"medianMaxDb":0.1680953494,"medianMeanDb":0.0107445790},
+    "quietGuard": {"activeRows":68,"abstainedRows":238,"maxObservedDb":0.0557590908,"medianMaxDb":0.0,"medianMeanDb":0.0}
+  },
+  "representativeHardCases": [
+    {"file":"CULT STATUS","modeLufs":-14.0,"presenceMaxDb":0.588,"qdiMaxDb":0.28,"balanceMaxDb":0.2596725714},
+    {"file":"PROTECT THE CROSS","modeLufs":-14.0,"presenceMaxDb":0.589,"qdiMaxDb":0.1051125217,"balanceMaxDb":0.3180116402},
+    {"file":"SIN MIEDO","modeLufs":-14.0,"presenceMaxDb":0.663,"qdiMaxDb":0.15,"balanceMaxDb":0.0732570936},
+    {"file":"The 1st amendment","modeLufs":-14.0,"presenceMaxDb":0.4488945200,"qdiMaxDb":0.1512848134,"balanceMaxDb":0.2846492944},
+    {"file":"New Black History (feat. Vince Staples)","modeLufs":-19.0,"presenceMaxDb":0.0753014958,"qdiMaxDb":0.2383830916,"balanceMaxDb":0.4543482072,"quietGuardMaxDb":0.0141045944},
+    {"file":"Garbage Pale Kids","modeLufs":-14.0,"presenceMaxDb":0.45,"qdiMaxDb":0.0749680861,"balanceMaxDb":0.2322218306}
+  ],
+  "warning": "Per-feature maxima may occur at different playback ticks and must not be added as if they were a simultaneous applied gain.",
+  "interpretation": "JPEGMAFIA-heavy material exercises the optional intelligence substantially while remaining bounded. This supports restraint/correctness; it does not itself validate semantic source identity."
+}
