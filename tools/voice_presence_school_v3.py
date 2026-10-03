@@ -19,7 +19,10 @@ AUDIO_EXT={'.ogg','.mp3','.wav','.flac','.m4a'}
 FEATURES=[
  'active','body','vowel','articulation_band','air','tonal_concentration',
  'modulation','spectral_flux','center','broadband_density','side_activity','persistence',
- 'harmonic_comb','pitch_motion','envelope_motion','upper_flatness'
+ 'harmonic_comb','pitch_motion','envelope_motion','upper_flatness',
+ 'spectral_centroid','rolloff85','zcr',
+ 'cep1','cep2','cep3','cep4','cep5','cep6',
+ 'cep1_var','cep2_var','cep3_var','cep4_var','cep5_var','cep6_var'
 ]
 
 def u(x): return float(np.clip(x,0,1))
@@ -40,7 +43,8 @@ def parse_label_file(path:Path):
         if len(nums)<2: continue
         a,b=nums[0],nums[1]
         lab=' '.join(p[idx[1]+1:]).strip().lower() if idx[1]+1<len(p) else ''
-        if not lab and len(nums)>=3: lab=str(int(nums[2]))
+        if not lab and len(nums)>=3:
+            lab=str(int(nums[2]))
         neg=any(k in lab for k in ('no voice','no_voice','novoice','nonvoice','no-voc','nosong','no_sing','nosing','instrument','non-vocal','nonvocal'))
         pos=(lab in {'1','true','voice','sing','singing','vocal','vocals'}) or any(k in lab for k in ('voice','sing','vocal'))
         y=0 if neg else 1 if pos else None
@@ -54,7 +58,8 @@ def discover(root:Path):
     for p in labs: by.setdefault(normstem(p.name),[]).append(p)
     pairs=[]
     for a in audio:
-        cand=by.get(normstem(a.name),[]); chosen=None
+        cand=by.get(normstem(a.name),[])
+        chosen=None
         for c in cand:
             seg=parse_label_file(c)
             if seg: chosen=(c,seg); break
@@ -78,6 +83,28 @@ def label_at(seg,t):
     for a,b,y in seg:
         if a<=t<b: return y
     return None
+
+
+def mel_filterbank(sr,nfft,bands=16,lo=120.0,hi=8000.0):
+    hi=min(hi,sr/2*0.98)
+    mel=lambda hz: 2595.0*np.log10(1.0+hz/700.0)
+    inv=lambda m: 700.0*(10**(m/2595.0)-1.0)
+    edges=inv(np.linspace(mel(lo),mel(hi),bands+2))
+    freqs=np.fft.rfftfreq(nfft,1/sr)
+    fb=np.zeros((bands,len(freqs)),float)
+    for m in range(bands):
+        l,c,r=edges[m:m+3]
+        left=(freqs>=l)&(freqs<=c);right=(freqs>c)&(freqs<=r)
+        if c>l: fb[m,left]=(freqs[left]-l)/(c-l)
+        if r>c: fb[m,right]=(r-freqs[right])/(r-c)
+    dct=np.cos(np.pi*np.arange(1,7)[:,None]*(np.arange(bands)[None,:]+.5)/bands)
+    return fb,dct
+
+def cepstral_shape(power,fb,dct):
+    frac=power/(float(np.sum(power))+1e-16)
+    mel=np.maximum(fb@frac,1e-12)
+    c=(dct@np.log(mel))/fb.shape[0]
+    return c
 
 def harmonic_candidates(sr,nfft):
     out=[]
@@ -108,31 +135,45 @@ def song_features(path:Path, seg, sr=11025, win_s=.5, hop_s=2.0):
     if y.ndim==1: y=np.stack([y,y])
     elif y.shape[0]>2: y=y[:2]
     n=int(round(sr*win_s)); hop=int(round(sr*hop_s)); sub=int(round(sr*.1)); nfft=2048
-    freqs=np.fft.rfftfreq(nfft,1/sr); candidates=harmonic_candidates(sr,nfft)
-    X=[];Y=[];prev_spec=None;prev_f0=None;persist=0.0
+    freqs=np.fft.rfftfreq(nfft,1/sr); candidates=harmonic_candidates(sr,nfft); fb,dct=mel_filterbank(sr,nfft)
+    X=[];Y=[]; prev_spec=None; prev_f0=None; persist=0.0
     for st in range(0,y.shape[1]-n+1,hop):
-        center_t=(st+n/2)/sr;lab=label_at(seg,center_t)
+        center_t=(st+n/2)/sr; lab=label_at(seg,center_t)
         if lab is None: continue
-        chunk=y[:,st:st+n];mono=chunk.mean(0);mid=(chunk[0]+chunk[1])*.5;side=(chunk[0]-chunk[1])*.5
-        rms=float(np.sqrt(np.mean(mono**2)+1e-12));db=20*np.log10(rms+1e-12);active=u((db+75)/40)
-        band_rows=[];tonal_rows=[];flux_rows=[];harm_rows=[];f0_rows=[];flat_rows=[];env=[]
+        chunk=y[:,st:st+n]; mono=chunk.mean(0); mid=(chunk[0]+chunk[1])*.5; side=(chunk[0]-chunk[1])*.5
+        rms=float(np.sqrt(np.mean(mono**2)+1e-12)); db=20*np.log10(rms+1e-12); active=u((db+75)/40)
+        band_rows=[]; tonal_rows=[]; flux_rows=[]; harm_rows=[]; f0_rows=[]; flat_rows=[]; env=[]; cep_rows=[]; centroid_rows=[]; roll_rows=[]; zcr_rows=[]
         for ss in range(0,n-sub+1,sub):
-            z=mono[ss:ss+sub];spec=np.abs(np.fft.rfft(z*np.hanning(len(z)),nfft))**2+1e-16;total=float(spec.sum())+1e-16
+            z=mono[ss:ss+sub]
+            w=np.hanning(len(z)); spec=np.abs(np.fft.rfft(z*w,nfft))**2+1e-16; total=float(spec.sum())+1e-16
             def frac(lo,hi):
-                m=(freqs>=lo)&(freqs<hi);return float(spec[m].sum()/total) if m.any() else 0.0
-            b,v,a,h=frac(120,500),frac(500,2000),frac(2000,5000),frac(5000,min(9000,sr/2+1));band_rows.append((u(b/.35),u(v/.50),u(a/.28),u(h/.15)))
-            m=(freqs>=120)&(freqs<=min(9000,sr/2));p=spec[m]
-            triple=float(np.max(p[:-2]+p[1:-1]+p[2:])) if len(p)>=3 else float(p.sum());tonal_rows.append(u(triple/(float(p.sum())+1e-16)))
-            ns=spec/(np.sqrt(np.sum(spec**2))+1e-16);flux_rows.append(0.0 if prev_spec is None else u(np.sqrt(np.sum((ns-prev_spec)**2))/.8));prev_spec=ns
-            hs,f0=harmonic_score(spec,freqs,candidates);harm_rows.append(hs);f0_rows.append(f0)
-            hi=(freqs>=2000)&(freqs<=min(8500,sr/2));q=np.sqrt(spec[hi]);flat=float(np.exp(np.mean(np.log(q+1e-12)))/(np.mean(q)+1e-12)) if q.size else 0;flat_rows.append(u(flat/.7));env.append(float(np.sqrt(np.mean(z*z)+1e-12)))
-        br=np.mean(np.asarray(band_rows),axis=0);body,vowel,art,air=map(float,br);tonal=float(np.mean(tonal_rows));flux=float(np.mean(flux_rows));harmonic=float(np.mean(harm_rows));upper_flat=float(np.mean(flat_rows))
-        env=np.asarray(env);mod=u((float(np.std(env))/(float(np.mean(env))+1e-9)-.05)/.65)
-        me=float(np.mean(mid**2));se=float(np.mean(side**2));center=u(me/(me+se+1e-12));side_a=u(se/(me+se+1e-12));density=active*u(.50*(1-tonal)+.22*art+.16*air+.12*upper_flat)
-        vocalish=active>=.28 and max(body,vowel)>=.30 and tonal>=.20;persist=min(1.0,persist+.5) if vocalish else max(0.0,persist-.5)
-        f0=np.median([x for x in f0_rows if x>0]) if any(x>0 for x in f0_rows) else 0;pitch_motion=0.0 if not prev_f0 or not f0 else u(abs(math.log2(f0/prev_f0))/0.7);prev_f0=f0 or prev_f0
-        bands=np.asarray(band_rows);env_motion=u(float(np.mean(np.std(bands,axis=0)))/.22)
-        X.append([active,body,vowel,art,air,tonal,mod,flux,center,density,side_a,persist,harmonic,pitch_motion,env_motion,upper_flat]);Y.append(int(lab))
+                m=(freqs>=lo)&(freqs<hi); return float(spec[m].sum()/total) if m.any() else 0.0
+            b,v,a,h=frac(120,500),frac(500,2000),frac(2000,5000),frac(5000,min(9000,sr/2+1))
+            band_rows.append((u(b/.35),u(v/.50),u(a/.28),u(h/.15)))
+            m=(freqs>=120)&(freqs<=min(9000,sr/2)); p=spec[m]
+            triple=float(np.max(p[:-2]+p[1:-1]+p[2:])) if len(p)>=3 else float(p.sum())
+            tonal_rows.append(u(triple/(float(p.sum())+1e-16)))
+            ns=spec/(np.sqrt(np.sum(spec**2))+1e-16)
+            flux_rows.append(0.0 if prev_spec is None else u(np.sqrt(np.sum((ns-prev_spec)**2))/.8)); prev_spec=ns
+            hs,f0=harmonic_score(spec,freqs,candidates); harm_rows.append(hs); f0_rows.append(f0); cep_rows.append(cepstral_shape(spec,fb,dct))
+            prob=spec/(float(spec.sum())+1e-16); centroid_rows.append(u(float(np.sum(freqs*prob))/(sr/2)))
+            cs=np.cumsum(prob); ridx=int(np.searchsorted(cs,.85)); roll_rows.append(u(float(freqs[min(ridx,len(freqs)-1)])/(sr/2)))
+            zcr_rows.append(u(float(np.mean(z[:-1]*z[1:]<0))/.35))
+            hi=(freqs>=2000)&(freqs<=min(8500,sr/2)); q=np.sqrt(spec[hi]); flat=float(np.exp(np.mean(np.log(q+1e-12)))/(np.mean(q)+1e-12)) if q.size else 0
+            flat_rows.append(u(flat/.7)); env.append(float(np.sqrt(np.mean(z*z)+1e-12)))
+        br=np.mean(np.asarray(band_rows),axis=0); body,vowel,art,air=map(float,br)
+        tonal=float(np.mean(tonal_rows)); flux=float(np.mean(flux_rows)); harmonic=float(np.mean(harm_rows)); upper_flat=float(np.mean(flat_rows))
+        cep=np.asarray(cep_rows,float); cep_mean=np.mean(cep,axis=0); cep_var=np.var(cep,axis=0)
+        centroid=float(np.mean(centroid_rows)); rolloff=float(np.mean(roll_rows)); zcr=float(np.mean(zcr_rows))
+        env=np.asarray(env); mod=u((float(np.std(env))/(float(np.mean(env))+1e-9)-.05)/.65)
+        me=float(np.mean(mid**2));se=float(np.mean(side**2));center=u(me/(me+se+1e-12));side_a=u(se/(me+se+1e-12))
+        density=active*u(.50*(1-tonal)+.22*art+.16*air+.12*upper_flat)
+        vocalish=active>=.28 and max(body,vowel)>=.30 and tonal>=.20
+        persist=min(1.0,persist+.5) if vocalish else max(0.0,persist-.5)
+        f0=np.median([x for x in f0_rows if x>0]) if any(x>0 for x in f0_rows) else 0
+        pitch_motion=0.0 if not prev_f0 or not f0 else u(abs(math.log2(f0/prev_f0))/0.7);prev_f0=f0 or prev_f0
+        bands=np.asarray(band_rows); env_motion=u(float(np.mean(np.std(bands,axis=0)))/.22)
+        X.append([active,body,vowel,art,air,tonal,mod,flux,center,density,side_a,persist,harmonic,pitch_motion,env_motion,upper_flat,centroid,rolloff,zcr,*cep_mean.tolist(),*cep_var.tolist()]);Y.append(int(lab))
     return np.asarray(X,float),np.asarray(Y,int)
 
 def metrics(y,p,score):
@@ -141,12 +182,13 @@ def metrics(y,p,score):
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('root');ap.add_argument('output');args=ap.parse_args();root=Path(args.root)
-    pairs,split,split_source=discover(root);sets={k:[[],[]] for k in ('train','valid','test')};songs={k:[] for k in sets}
+    pairs,split,split_source=discover(root)
+    sets={k:[[],[]] for k in ('train','valid','test')};songs={k:[] for k in sets}
     for a,l,seg in pairs:
         s=split.get(normstem(a.name))
         if s not in sets: continue
         X,y=song_features(a,seg)
-        if len(y):sets[s][0].append(X);sets[s][1].append(y);songs[s].append(a.name)
+        if len(y): sets[s][0].append(X);sets[s][1].append(y);songs[s].append(a.name)
     data={}
     for s,(xs,ys) in sets.items():
         if not xs: raise SystemExit(f'No usable {s} data; pairs={len(pairs)} splitSource={split_source}')
@@ -155,8 +197,6 @@ def main():
 
     def choose_threshold(score):
         best=None
-        # False positives are the specific failure that motivated this lesson,
-        # so break near-ties in favor of lower FPR rather than higher recall.
         for th in np.arange(.30,.811,.02):
             pv=(score>=th).astype(int); mm=metrics(yv,pv,score)
             key=(mm['balancedAccuracy'], mm['f1'], -mm['falsePositiveRate'])
@@ -171,17 +211,14 @@ def main():
         key,th,mm=choose_threshold(score)
         candidates.append((key,'logistic',{'C':C},th,mm,model,sc))
 
-    # Tiny shallow ensembles remain phone-feasible: inference is only a few
-    # hundred scalar comparisons per 500 ms observation, with no neural runtime.
     for family in ('extraTrees','randomForest'):
-        for trees,depth,leaf in ((24,4,24),(32,5,20),(48,6,16),(48,7,24)):
+        for trees,depth,leaf in ((24,4,24),(32,5,20),(48,6,16),(64,7,12),(64,8,8)):
             cls=ExtraTreesClassifier if family=='extraTrees' else RandomForestClassifier
             model=cls(n_estimators=trees,max_depth=depth,min_samples_leaf=leaf,
                       max_features=None,class_weight='balanced',random_state=209,
                       n_jobs=-1).fit(Xtr,ytr)
             score=model.predict_proba(Xv)[:,1]
             key,th,mm=choose_threshold(score)
-            # Prefer the smaller model when validation performance is essentially tied.
             complexity=trees*depth
             selection=(key[0],key[1],key[2],-complexity)
             candidates.append((selection,family,{'trees':trees,'depth':depth,'minLeaf':leaf},th,mm,model,None))
@@ -198,7 +235,6 @@ def main():
         forest=[]
         for est in model.estimators_:
             t=est.tree_
-            # Probability at a leaf is class-1 weighted count / total weighted count.
             values=t.value[:,0,:]
             leaf_prob=(values[:,1]/np.maximum(1e-12,values.sum(axis=1))).tolist()
             forest.append({'left':t.children_left.astype(int).tolist(),
