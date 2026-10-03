@@ -1,0 +1,41 @@
+{
+  "schema": "pretty-pink-comfort-priority-school-v1",
+  "date": "2026-10-03",
+  "productionBaseline": "2.0.112",
+  "hypothesis": "When existing SpectralMarginPolicy independently earns persistent energetic presence/upper-air evidence, Scene v3 should not relax an already-planned negative Balance cut. QDI scene restraint stays unchanged.",
+  "truthBoundary": [
+    "No claim of SPL or hearing safety.",
+    "No new EQ or attenuation authority.",
+    "Selected real-song analysis replays exact 2.0.112 K-weighting, EarComfortMeter, BassMeter, SpectralMarginPolicy and TemporalSceneWitness math in Python.",
+    "Raw scene restraint opportunity omits Production/Vocal veto and is therefore not exact delivered Scene authority.",
+    "Commercial audio remains local evaluation only and is not committed."
+  ],
+  "selectedRealMusic": [
+    {"file":"04 Ice Cube - Wicked.flac","lufs":-8.531778,"spectralConfidence":0.0,"brightOfEnergetic":0.001769,"airOfEnergetic":0.0,"supportedTenSecondRegions":0,"sceneQualifiedEvents":0,"sceneRawRestraintOpportunityFraction":0.0,"sceneRawMeanFactor":1.0,"sceneRawMinimumFactor":1.0},
+    {"file":"07 Ice Cube - It Was A Good Day.flac","lufs":-11.467068,"spectralConfidence":0.0,"brightOfEnergetic":0.036496,"airOfEnergetic":0.018463,"supportedTenSecondRegions":0,"sceneQualifiedEvents":11,"sceneRawRestraintOpportunityFraction":0.201923,"sceneRawMeanFactor":0.99162,"sceneRawMinimumFactor":0.901272},
+    {"file":"Breaking Benjamin - 02. Failure.flac","lufs":-6.777133,"spectralConfidence":0.0,"brightOfEnergetic":0.007422,"airOfEnergetic":0.004948,"supportedTenSecondRegions":0,"sceneQualifiedEvents":2,"sceneRawRestraintOpportunityFraction":0.045624,"sceneRawMeanFactor":0.998039,"sceneRawMinimumFactor":0.911316},
+    {"file":"Breaking Benjamin - 10. Ashes of Eden.flac","lufs":-10.429564,"spectralConfidence":0.0,"brightOfEnergetic":0.008686,"airOfEnergetic":0.034743,"supportedTenSecondRegions":0,"sceneQualifiedEvents":2,"sceneRawRestraintOpportunityFraction":0.033379,"sceneRawMeanFactor":0.998426,"sceneRawMinimumFactor":0.901803},
+    {"file":"Breaking Benjamin - 12. Dawn.flac","lufs":-13.61625,"spectralConfidence":0.0,"brightOfEnergetic":0.0,"airOfEnergetic":0.0,"supportedTenSecondRegions":0,"sceneQualifiedEvents":3,"sceneRawRestraintOpportunityFraction":0.129893,"sceneRawMeanFactor":0.992579,"sceneRawMinimumFactor":0.83044},
+    {"file":"JPEGMAFIA x Danny Brown - SCARING THE HOES - 01 Lean Beef Patty.flac","lufs":-5.030707,"spectralConfidence":1.0,"brightOfEnergetic":0.323183,"airOfEnergetic":0.325147,"supportedTenSecondRegions":9,"sceneQualifiedEvents":7,"sceneRawRestraintOpportunityFraction":0.31907,"sceneRawMeanFactor":0.985123,"sceneRawMinimumFactor":0.872823},
+    {"file":"JPEGMAFIA x Danny Brown - SCARING THE HOES - 03 SCARING THE HOES.flac","lufs":-5.328054,"spectralConfidence":1.0,"brightOfEnergetic":0.239146,"airOfEnergetic":0.23274,"supportedTenSecondRegions":10,"sceneQualifiedEvents":5,"sceneRawRestraintOpportunityFraction":0.168768,"sceneRawMeanFactor":0.992071,"sceneRawMinimumFactor":0.876168},
+    {"file":"JPEGMAFIA x Danny Brown - SCARING THE HOES - 04 Garbage Pale Kids.flac","lufs":-3.049726,"spectralConfidence":1.0,"brightOfEnergetic":0.228893,"airOfEnergetic":0.125704,"supportedTenSecondRegions":13,"sceneQualifiedEvents":3,"sceneRawRestraintOpportunityFraction":0.0875,"sceneRawMeanFactor":0.996102,"sceneRawMinimumFactor":0.879827},
+    {"file":"JPEGMAFIA x Danny Brown - SCARING THE HOES - 05 Fentanyl Tester.flac","lufs":-5.184615,"spectralConfidence":0.935164,"brightOfEnergetic":0.196299,"airOfEnergetic":0.148711,"supportedTenSecondRegions":11,"sceneQualifiedEvents":12,"sceneRawRestraintOpportunityFraction":0.350254,"sceneRawMeanFactor":0.981133,"sceneRawMinimumFactor":0.852926},
+    {"file":"JPEGMAFIA x Danny Brown - SCARING THE HOES - 10 God Loves You.flac","lufs":-2.126962,"spectralConfidence":0.17356,"brightOfEnergetic":0.093927,"airOfEnergetic":0.187853,"supportedTenSecondRegions":7,"sceneQualifiedEvents":4,"sceneRawRestraintOpportunityFraction":0.131898,"sceneRawMeanFactor":0.992595,"sceneRawMinimumFactor":0.834932},
+    {"file":"Jane Remover - Revengeseekerz - 03 Star people.flac","lufs":-7.789541,"spectralConfidence":0.0,"brightOfEnergetic":0.01336,"airOfEnergetic":0.060729,"supportedTenSecondRegions":0,"sceneQualifiedEvents":10,"sceneRawRestraintOpportunityFraction":0.185643,"sceneRawMeanFactor":0.989897,"sceneRawMinimumFactor":0.851895},
+    {"file":"Jane Remover - Revengeseekerz - 02 Psychoboost ft danny brown.flac","lufs":-6.08001,"spectralConfidence":0.0,"brightOfEnergetic":0.042146,"airOfEnergetic":0.061728,"supportedTenSecondRegions":2,"sceneQualifiedEvents":15,"sceneRawRestraintOpportunityFraction":0.296569,"sceneRawMeanFactor":0.98425,"sceneRawMinimumFactor":0.861016},
+    {"file":"Jane Remover - Revengeseekerz - 04 Experimental Skin.flac","lufs":-6.582684,"spectralConfidence":0.0,"brightOfEnergetic":0.041384,"airOfEnergetic":0.064111,"supportedTenSecondRegions":5,"sceneQualifiedEvents":13,"sceneRawRestraintOpportunityFraction":0.208722,"sceneRawMeanFactor":0.989782,"sceneRawMinimumFactor":0.885575}
+  ],
+  "existing95CorpusSpectralSummary": {
+    "tracks": 95,
+    "nonzeroSpectralConfidence": 1,
+    "nonzeroTracks": [{"file":"Charli xcx - 14. February 2017 (feat. Clairo and Yaeji).flac","confidence":0.15837320061582602}]
+  },
+  "candidatePolicy": {
+    "balanceOnly": true,
+    "ifSpectralConfidencePositive": "use scene factor 1.0 for Balance only (restore original planned Balance cut)",
+    "qdi": "unchanged current Scene v3 factor",
+    "maximumAdditionalCutBeyondExistingBalance": "0 dB",
+    "sharedGainBaseAnchor": "must remain exact",
+    "soundAuthority": "no new authority; removes Scene's authority to reduce an existing cut under strong comfort evidence"
+  }
+}
