@@ -1,0 +1,47 @@
+[
+  {
+    "file": "Charli xcx - 04. 1999.flac",
+    "complexity": 0.6130722961500312,
+    "flags": ["STEREO_SPATIAL_STRUCTURE", "WIDE_OR_DECORRELATED_LAYERS", "MULTIPLE_TEXTURE_FACTORS", "PERSISTENT_TRANSIENT_ACTIVITY", "NOISE_OR_INHARMONIC_TEXTURE", "STRONG_HARMONIC_STRUCTURE"],
+    "regimes": {"countHypothesis": 2, "silhouette": 0.26271772384643555, "claim": "acoustic regimes only; not source identity"},
+    "semantic": "UNAVAILABLE",
+    "vocal": "UNAVAILABLE",
+    "authority": {"mode": "OBSERVE_ONLY", "enabled": false, "audioMutationAllowed": false, "playbackPlanInfluenceAllowed": false, "allowedActions": [], "rule": "Learn more without earning the right to touch more."}
+  },
+  {
+    "file": "Charli xcx - 15. 2099 (feat. Troye Sivan) (Explicit).flac",
+    "complexity": 0.5929741519041922,
+    "flags": ["STEREO_SPATIAL_STRUCTURE", "WIDE_OR_DECORRELATED_LAYERS", "MULTIPLE_TEXTURE_FACTORS", "PERSISTENT_TRANSIENT_ACTIVITY", "STRONG_HARMONIC_STRUCTURE"],
+    "regimes": {"countHypothesis": 2, "silhouette": 0.22389531135559082, "claim": "acoustic regimes only; not source identity"},
+    "semantic": "UNAVAILABLE",
+    "vocal": "UNAVAILABLE",
+    "authority": {"mode": "OBSERVE_ONLY", "enabled": false, "audioMutationAllowed": false, "playbackPlanInfluenceAllowed": false, "allowedActions": [], "rule": "Learn more without earning the right to touch more."}
+  },
+  {
+    "file": "Charli xcx - 01. Next Level Charli.flac",
+    "complexity": 0.6719382774129384,
+    "flags": ["STEREO_SPATIAL_STRUCTURE", "WIDE_OR_DECORRELATED_LAYERS", "MULTIPLE_TEXTURE_FACTORS", "PERSISTENT_TRANSIENT_ACTIVITY", "STRONG_HARMONIC_STRUCTURE"],
+    "regimes": {"countHypothesis": 2, "silhouette": 0.27459412813186646, "claim": "acoustic regimes only; not source identity"},
+    "semantic": "UNAVAILABLE",
+    "vocal": "UNAVAILABLE",
+    "authority": {"mode": "OBSERVE_ONLY", "enabled": false, "audioMutationAllowed": false, "playbackPlanInfluenceAllowed": false, "allowedActions": [], "rule": "Learn more without earning the right to touch more."}
+  },
+  {
+    "file": "Charli xcx - 09. White Mercedes.flac",
+    "complexity": 0.6148717777248333,
+    "flags": ["STEREO_SPATIAL_STRUCTURE", "WIDE_OR_DECORRELATED_LAYERS", "MULTIPLE_TEXTURE_FACTORS", "PERSISTENT_TRANSIENT_ACTIVITY", "STRONG_HARMONIC_STRUCTURE"],
+    "regimes": {"countHypothesis": 2, "silhouette": 0.24034030735492706, "claim": "acoustic regimes only; not source identity"},
+    "semantic": "UNAVAILABLE",
+    "vocal": "UNAVAILABLE",
+    "authority": {"mode": "OBSERVE_ONLY", "enabled": false, "audioMutationAllowed": false, "playbackPlanInfluenceAllowed": false, "allowedActions": [], "rule": "Learn more without earning the right to touch more."}
+  },
+  {
+    "file": "Charli xcx - 12. Official.flac",
+    "complexity": 0.6197258095321941,
+    "flags": ["STEREO_SPATIAL_STRUCTURE", "WIDE_OR_DECORRELATED_LAYERS", "MULTIPLE_TEXTURE_FACTORS", "PERSISTENT_TRANSIENT_ACTIVITY", "STRONG_HARMONIC_STRUCTURE"],
+    "regimes": {"countHypothesis": 2, "silhouette": 0.20326654613018036, "claim": "acoustic regimes only; not source identity"},
+    "semantic": "UNAVAILABLE",
+    "vocal": "UNAVAILABLE",
+    "authority": {"mode": "OBSERVE_ONLY", "enabled": false, "audioMutationAllowed": false, "playbackPlanInfluenceAllowed": false, "allowedActions": [], "rule": "Learn more without earning the right to touch more."}
+  }
+]
