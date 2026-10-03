@@ -19,4 +19,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Run CPI v1 policy tests
-        run: python tests/test_comfort_priority_interlock_v1.py
+        run: PYTHONPATH=. python tests/test_comfort_priority_interlock_v1.py
