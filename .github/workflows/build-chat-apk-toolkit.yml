@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+          sdkmanager 'platforms;android-35' 'build-tools;34.0.0' 'build-tools;35.0.0' 'platform-tools'
 
       - name: Download and verify Gradle 8.9
         shell: bash
@@ -70,7 +70,6 @@ jobs:
           android {
               namespace 'com.prettypink.toolkit'
               compileSdk 35
-              buildToolsVersion '35.0.0'
               defaultConfig {
                   applicationId 'com.prettypink.toolkit'
                   minSdk 26
@@ -125,6 +124,7 @@ jobs:
           cp gradle-8.9-bin.zip.sha256 "$OUT/vendor/"
 
           mkdir -p sdk-pack/android-sdk/build-tools sdk-pack/android-sdk/platforms
+          cp -a "$ANDROID_HOME/build-tools/34.0.0" sdk-pack/android-sdk/build-tools/
           cp -a "$ANDROID_HOME/build-tools/35.0.0" sdk-pack/android-sdk/build-tools/
           cp -a "$ANDROID_HOME/platforms/android-35" sdk-pack/android-sdk/platforms/
           cp -a "$ANDROID_HOME/platform-tools" sdk-pack/android-sdk/
@@ -175,7 +175,7 @@ jobs:
           export ANDROID_HOME="$RUNTIME/android-sdk"
           export ANDROID_SDK_ROOT="$ANDROID_HOME"
           export GRADLE_USER_HOME="$RUNTIME/gradle-user-home"
-          export PATH="$JAVA_HOME/bin:$RUNTIME/gradle-8.9/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
+          export PATH="$JAVA_HOME/bin:$RUNTIME/gradle-8.9/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$ANDROID_HOME/build-tools/34.0.0:$PATH"
 
           echo "Java: $($JAVA_HOME/bin/java -version 2>&1 | head -n1)"
           echo "Gradle: $($RUNTIME/gradle-8.9/bin/gradle --version | awk '/Gradle /{print; exit}')"
@@ -196,7 +196,7 @@ jobs:
           - Gradle 8.9
           - Android Gradle Plugin 8.7.3, warmed for offline resolution
           - Android compile/target SDK 35
-          - Android Build Tools 35.0.0 only
+          - Android Build Tools 34.0.0 (AGP 8.7.3 default for current Pretty Pink) and 35.0.0
           - Android platform-tools
           - min SDK 26 compatible
 
@@ -231,7 +231,7 @@ jobs:
             ./gradle-8.9/bin/gradle --version | awk '/Gradle /{print; exit}'
             echo 'AGP=8.7.3'
             echo 'compileSdk=35'
-            echo 'buildTools=35.0.0'
+            echo 'buildTools=34.0.0 (AGP default) + 35.0.0'
             sha256sum out/Pretty-Pink-Chat-APK-Builder-CORE.zip
             sha256sum out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz
           } > out/TOOLKIT-MANIFEST.txt
