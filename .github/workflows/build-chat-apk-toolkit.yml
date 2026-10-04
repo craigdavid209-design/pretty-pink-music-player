@@ -1,0 +1,255 @@
+name: Build Pretty Pink Chat APK Toolkit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-chat-apk-toolkit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-toolkit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Temurin JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install exact Android SDK pieces
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+
+      - name: Download and verify Gradle 8.9
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 -o gradle-8.9-bin.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          curl -fL --retry 3 -o gradle-8.9-bin.zip.sha256 https://services.gradle.org/distributions/gradle-8.9-bin.zip.sha256
+          echo "$(cat gradle-8.9-bin.zip.sha256)  gradle-8.9-bin.zip" | sha256sum -c -
+          unzip -q gradle-8.9-bin.zip
+          ./gradle-8.9/bin/gradle --version
+
+      - name: Create tiny Android warm-up project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p warm/app/src/main/java/com/prettypink/toolkit
+          cat > warm/settings.gradle <<'EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = 'PrettyPinkToolkitWarmup'
+          include ':app'
+          EOF
+          cat > warm/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+          cat > warm/app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.prettypink.toolkit'
+              compileSdk 35
+              defaultConfig {
+                  applicationId 'com.prettypink.toolkit'
+                  minSdk 26
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }
+          EOF
+          cat > warm/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application android:theme="@style/AppTheme" android:label="Toolkit Warmup">
+              <activity android:name=".MainActivity" android:exported="true">
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+          mkdir -p warm/app/src/main/res/values
+          cat > warm/app/src/main/res/values/styles.xml <<'EOF'
+          <resources><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar" /></resources>
+          EOF
+          cat > warm/app/src/main/java/com/prettypink/toolkit/MainActivity.java <<'EOF'
+          package com.prettypink.toolkit;
+          public final class MainActivity extends android.app.Activity { }
+          EOF
+
+      - name: Warm Gradle and AGP 8.7.3 cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GRADLE_USER_HOME="$PWD/gradle-user-home"
+          ./gradle-8.9/bin/gradle -p warm --no-daemon :app:assembleDebug
+          ./gradle-8.9/bin/gradle -p warm --offline --no-daemon clean :app:assembleDebug
+          test -f warm/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Assemble portable core pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$PWD"
+          OUT="$ROOT/out/core"
+          mkdir -p "$OUT/vendor" "$OUT/scripts" "$ROOT/out/jdk"
+
+          cp gradle-8.9-bin.zip "$OUT/vendor/"
+          cp gradle-8.9-bin.zip.sha256 "$OUT/vendor/"
+
+          mkdir -p sdk-pack/android-sdk
+          cp -a "$ANDROID_HOME/build-tools" sdk-pack/android-sdk/
+          cp -a "$ANDROID_HOME/platforms" sdk-pack/android-sdk/
+          cp -a "$ANDROID_HOME/platform-tools" sdk-pack/android-sdk/
+          if [ -d "$ANDROID_HOME/licenses" ]; then cp -a "$ANDROID_HOME/licenses" sdk-pack/android-sdk/; fi
+          tar -C sdk-pack -czf "$OUT/vendor/android-sdk35-runtime.tar.gz" android-sdk
+
+          rm -rf gradle-user-home/daemon gradle-user-home/workers gradle-user-home/notifications gradle-user-home/.tmp || true
+          tar -czf "$OUT/vendor/gradle-user-home-agp873.tar.gz" gradle-user-home
+
+          cat > "$OUT/scripts/pretty-pink-build.sh" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+          RUNTIME="$ROOT/runtime"
+          VENDOR="$ROOT/vendor"
+          PROJECT="${1:-$PWD}"
+          TASK="${2:-:app:assembleDebug}"
+          mkdir -p "$RUNTIME"
+
+          if [ ! -d "$RUNTIME/gradle-8.9" ]; then
+            unzip -q "$VENDOR/gradle-8.9-bin.zip" -d "$RUNTIME"
+          fi
+          if [ ! -d "$RUNTIME/android-sdk" ]; then
+            tar -xzf "$VENDOR/android-sdk35-runtime.tar.gz" -C "$RUNTIME"
+          fi
+          if [ ! -d "$RUNTIME/gradle-user-home" ]; then
+            tar -xzf "$VENDOR/gradle-user-home-agp873.tar.gz" -C "$RUNTIME"
+          fi
+
+          if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME:-}/bin/javac" ]; then
+            for JDK_ARCHIVE in "$ROOT"/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz "$ROOT"/../Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz; do
+              if [ -f "$JDK_ARCHIVE" ]; then
+                if [ ! -d "$RUNTIME/jdk17" ]; then tar -xzf "$JDK_ARCHIVE" -C "$RUNTIME"; fi
+                export JAVA_HOME="$RUNTIME/jdk17"
+                break
+              fi
+            done
+          fi
+          if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$JAVA_HOME/bin/javac" ]; then
+            echo 'ERROR: no JDK found. Put Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz beside the core folder, or set JAVA_HOME.' >&2
+            exit 2
+          fi
+
+          export ANDROID_HOME="$RUNTIME/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export GRADLE_USER_HOME="$RUNTIME/gradle-user-home"
+          export PATH="$JAVA_HOME/bin:$RUNTIME/gradle-8.9/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/35.0.0:$PATH"
+
+          echo "Java: $($JAVA_HOME/bin/java -version 2>&1 | head -n1)"
+          echo "Gradle: $($RUNTIME/gradle-8.9/bin/gradle --version | awk '/Gradle /{print; exit}')"
+          echo "Android SDK: $ANDROID_HOME"
+          echo "Project: $PROJECT"
+          echo "Task: $TASK"
+          "$RUNTIME/gradle-8.9/bin/gradle" --offline --no-daemon -p "$PROJECT" "$TASK"
+          EOF
+          chmod +x "$OUT/scripts/pretty-pink-build.sh"
+
+          cat > "$OUT/README-FIRST.md" <<'EOF'
+          # Pretty Pink Chat APK Builder — CORE
+
+          Portable Linux x86_64 Android build kit for chat-mode Pretty Pink work.
+
+          Exact build lane:
+          - Gradle 8.9
+          - Android Gradle Plugin 8.7.3, warmed for offline resolution
+          - Android compile/target SDK 35
+          - Build Tools 35.0.0
+          - min SDK 26 compatible
+          - Use the companion Temurin JDK 17 pack for deterministic builds.
+
+          Keep the companion `Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz` beside this extracted folder (or set JAVA_HOME to a suitable JDK).
+
+          Build:
+          `./scripts/pretty-pink-build.sh /path/to/android/project :app:assembleDebug`
+
+          The script performs the Gradle build in offline mode. It contains no production signing key and no test music.
+          EOF
+
+          (cd "$OUT" && sha256sum vendor/* > SHA256SUMS.txt)
+          (cd "$ROOT/out/core" && zip -q -r -9 "$ROOT/out/Pretty-Pink-Chat-APK-Builder-CORE.zip" .)
+
+      - name: Assemble Temurin JDK 17 companion pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/jdk/jdk17
+          cp -a "$JAVA_HOME"/. out/jdk/jdk17/
+          tar -C out/jdk -czf out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz jdk17
+          sha256sum out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz > out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz.sha256
+
+      - name: Record toolkit manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'Pretty Pink Chat APK Builder'
+            echo 'Generated on GitHub Actions ubuntu-24.04'
+            java -version 2>&1 | head -n 1
+            ./gradle-8.9/bin/gradle --version | awk '/Gradle /{print; exit}'
+            echo 'AGP=8.7.3'
+            echo 'compileSdk=35'
+            echo 'buildTools=35.0.0'
+            sha256sum out/Pretty-Pink-Chat-APK-Builder-CORE.zip
+            sha256sum out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz
+          } > out/TOOLKIT-MANIFEST.txt
+
+      - name: Upload core toolkit
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pretty-Pink-Chat-APK-Builder-CORE
+          path: |
+            out/Pretty-Pink-Chat-APK-Builder-CORE.zip
+            out/TOOLKIT-MANIFEST.txt
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload JDK 17 companion
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pretty-Pink-Chat-APK-Builder-JDK17
+          path: |
+            out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz
+            out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz.sha256
+            out/TOOLKIT-MANIFEST.txt
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
