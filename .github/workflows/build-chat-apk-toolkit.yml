@@ -70,6 +70,7 @@ jobs:
           android {
               namespace 'com.prettypink.toolkit'
               compileSdk 35
+              buildToolsVersion '35.0.0'
               defaultConfig {
                   applicationId 'com.prettypink.toolkit'
                   minSdk 26
@@ -123,9 +124,9 @@ jobs:
           cp gradle-8.9-bin.zip "$OUT/vendor/"
           cp gradle-8.9-bin.zip.sha256 "$OUT/vendor/"
 
-          mkdir -p sdk-pack/android-sdk
-          cp -a "$ANDROID_HOME/build-tools" sdk-pack/android-sdk/
-          cp -a "$ANDROID_HOME/platforms" sdk-pack/android-sdk/
+          mkdir -p sdk-pack/android-sdk/build-tools sdk-pack/android-sdk/platforms
+          cp -a "$ANDROID_HOME/build-tools/35.0.0" sdk-pack/android-sdk/build-tools/
+          cp -a "$ANDROID_HOME/platforms/android-35" sdk-pack/android-sdk/platforms/
           cp -a "$ANDROID_HOME/platform-tools" sdk-pack/android-sdk/
           if [ -d "$ANDROID_HOME/licenses" ]; then cp -a "$ANDROID_HOME/licenses" sdk-pack/android-sdk/; fi
           tar -C sdk-pack -cf - android-sdk | gzip -1 > "$OUT/vendor/android-sdk35-runtime.tar.gz"
@@ -195,7 +196,8 @@ jobs:
           - Gradle 8.9
           - Android Gradle Plugin 8.7.3, warmed for offline resolution
           - Android compile/target SDK 35
-          - Build Tools 35.0.0
+          - Android Build Tools 35.0.0 only
+          - Android platform-tools
           - min SDK 26 compatible
 
           Keep the companion `Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz` beside this extracted folder.
