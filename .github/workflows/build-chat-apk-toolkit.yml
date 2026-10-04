@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p warm/app/src/main/java/com/prettypink/toolkit
+          mkdir -p warm/app/src/main/java/com/prettypink/toolkit warm/app/src/main/res/values
           cat > warm/settings.gradle <<'EOF'
           pluginManagement {
               repositories { google(); mavenCentral(); gradlePluginPortal() }
@@ -95,7 +95,6 @@ jobs:
             </application>
           </manifest>
           EOF
-          mkdir -p warm/app/src/main/res/values
           cat > warm/app/src/main/res/values/styles.xml <<'EOF'
           <resources><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar" /></resources>
           EOF
@@ -129,10 +128,10 @@ jobs:
           cp -a "$ANDROID_HOME/platforms" sdk-pack/android-sdk/
           cp -a "$ANDROID_HOME/platform-tools" sdk-pack/android-sdk/
           if [ -d "$ANDROID_HOME/licenses" ]; then cp -a "$ANDROID_HOME/licenses" sdk-pack/android-sdk/; fi
-          tar -C sdk-pack -czf "$OUT/vendor/android-sdk35-runtime.tar.gz" android-sdk
+          tar -C sdk-pack -cf - android-sdk | gzip -1 > "$OUT/vendor/android-sdk35-runtime.tar.gz"
 
           rm -rf gradle-user-home/daemon gradle-user-home/workers gradle-user-home/notifications gradle-user-home/.tmp || true
-          tar -czf "$OUT/vendor/gradle-user-home-agp873.tar.gz" gradle-user-home
+          tar -cf - gradle-user-home | gzip -1 > "$OUT/vendor/gradle-user-home-agp873.tar.gz"
 
           cat > "$OUT/scripts/pretty-pink-build.sh" <<'EOF'
           #!/usr/bin/env bash
@@ -154,16 +153,20 @@ jobs:
             tar -xzf "$VENDOR/gradle-user-home-agp873.tar.gz" -C "$RUNTIME"
           fi
 
-          if [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME:-}/bin/javac" ]; then
-            for JDK_ARCHIVE in "$ROOT"/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz "$ROOT"/../Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz; do
-              if [ -f "$JDK_ARCHIVE" ]; then
-                if [ ! -d "$RUNTIME/jdk17" ]; then tar -xzf "$JDK_ARCHIVE" -C "$RUNTIME"; fi
-                export JAVA_HOME="$RUNTIME/jdk17"
-                break
-              fi
-            done
-          fi
-          if [ -z "${JAVA_HOME:-}" ] || [ ! -x "$JAVA_HOME/bin/javac" ]; then
+          BUNDLED_JDK=""
+          for JDK_ARCHIVE in "$ROOT"/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz "$ROOT"/../Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz; do
+            if [ -f "$JDK_ARCHIVE" ]; then
+              BUNDLED_JDK="$JDK_ARCHIVE"
+              break
+            fi
+          done
+          if [ -n "$BUNDLED_JDK" ]; then
+            if [ ! -x "$RUNTIME/jdk17/bin/javac" ]; then
+              rm -rf "$RUNTIME/jdk17"
+              tar -xzf "$BUNDLED_JDK" -C "$RUNTIME"
+            fi
+            export JAVA_HOME="$RUNTIME/jdk17"
+          elif [ -z "${JAVA_HOME:-}" ] || [ ! -x "${JAVA_HOME:-}/bin/javac" ]; then
             echo 'ERROR: no JDK found. Put Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz beside the core folder, or set JAVA_HOME.' >&2
             exit 2
           fi
@@ -188,14 +191,14 @@ jobs:
           Portable Linux x86_64 Android build kit for chat-mode Pretty Pink work.
 
           Exact build lane:
+          - Temurin JDK 17 companion pack (preferred automatically)
           - Gradle 8.9
           - Android Gradle Plugin 8.7.3, warmed for offline resolution
           - Android compile/target SDK 35
           - Build Tools 35.0.0
           - min SDK 26 compatible
-          - Use the companion Temurin JDK 17 pack for deterministic builds.
 
-          Keep the companion `Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz` beside this extracted folder (or set JAVA_HOME to a suitable JDK).
+          Keep the companion `Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz` beside this extracted folder.
 
           Build:
           `./scripts/pretty-pink-build.sh /path/to/android/project :app:assembleDebug`
@@ -204,7 +207,7 @@ jobs:
           EOF
 
           (cd "$OUT" && sha256sum vendor/* > SHA256SUMS.txt)
-          (cd "$ROOT/out/core" && zip -q -r -9 "$ROOT/out/Pretty-Pink-Chat-APK-Builder-CORE.zip" .)
+          (cd "$ROOT/out/core" && zip -q -r -0 "$ROOT/out/Pretty-Pink-Chat-APK-Builder-CORE.zip" .)
 
       - name: Assemble Temurin JDK 17 companion pack
         shell: bash
@@ -212,7 +215,7 @@ jobs:
           set -euo pipefail
           mkdir -p out/jdk/jdk17
           cp -a "$JAVA_HOME"/. out/jdk/jdk17/
-          tar -C out/jdk -czf out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz jdk17
+          tar -C out/jdk -cf - jdk17 | gzip -1 > out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz
           sha256sum out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz > out/Pretty-Pink-Chat-APK-Builder-JDK17.tar.gz.sha256
 
       - name: Record toolkit manifest
